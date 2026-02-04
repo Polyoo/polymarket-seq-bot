@@ -7,28 +7,25 @@ class Strategy:
         self.history = []
 
     def check_price(self, market_id, up_price, down_price):
-        """Trigger buy logic tiap price update"""
         buy_msg = ""
         profit_change = 0
 
         if not self.session_active:
             self.session_active = True
 
-        # Logic <0.40 cent
         if up_price < self.threshold:
-            buy_msg = f"💹 BUY UP! Price: {up_price}"
-            # Simulate profit (up wins 1.0)
+            buy_msg = f"💹 BUY UP! Price: {up_price:.2f}"
             profit_change = self.trade_amount * (1 - up_price)
             self.total_profit += profit_change
             self.history.append(("Up", up_price, profit_change))
 
         elif down_price < self.threshold:
-            buy_msg = f"💹 BUY DOWN! Price: {down_price}"
+            buy_msg = f"💹 BUY DOWN! Price: {down_price:.2f}"
             profit_change = self.trade_amount * (1 - down_price)
             self.total_profit += profit_change
             self.history.append(("Down", down_price, profit_change))
 
-        # Panel print
+        # Terminal panel
         self.display_panel(market_id, up_price, down_price, buy_msg)
 
     def display_panel(self, market_id, up_price, down_price, buy_msg):
@@ -41,6 +38,6 @@ class Strategy:
         print(f"💰 Total Profit: {self.total_profit:.2f} USD")
         print("-" * 40)
         if self.history:
-            print("History:")
+            print("History (last 5):")
             for h in self.history[-5:]:
                 print(f"{h[0]} @ {h[1]:.2f} => Profit: {h[2]:.2f}")
