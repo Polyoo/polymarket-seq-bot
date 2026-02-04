@@ -21,10 +21,12 @@ class PolymarketPoll:
                     self.down_id = down_id
 
                 prices = self.api.fetch_market_prices(market_id)
-                print(f"🔄 Updated Market: {market_id}, prices: {prices}")
                 if prices:
                     self.last_up_price = prices.get("Up", 0)
                     self.last_down_price = prices.get("Down", 0)
                     update_callback(self.last_up_price, self.last_down_price)
-
+                else:
+                    print("⚠️ Market detected tapi fetch price failed")
+            else:
+                print("⏳ Waiting for BTC market...")
             await asyncio.sleep(1)
