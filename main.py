@@ -1,44 +1,47 @@
 import asyncio
 import requests
-
-from config import SERIES_SLUG
+from config import SERIES_SLUG, SESSION_SECONDS
 from core.polymarket_ws import PolymarketWS
 from core.strategy import Strategy
 from core.timer import Timer
-from core.state_machine import StateMachine
 from core.execution import Execution
 
-# Step 1: Fetch latest market from Gamma API
+GAMMA_API_URL = "https://gamma-api.polymarket.com/markets"
+
+# Step 1: fetch latest BTC 15-min market
 def fetch_latest_market():
-    resp = requests.get(f"https://gamma-api.polymarket.com/markets?seriesSlug={SERIES_SLUG}&active=true")
+    resp = requests.get(f"{GAMMA_API_URL}?seriesSlug={SERIES_SLUG}&active=true")
     data = resp.json()
-    market = data[0]  # ambil first active market
+    market = data[0]
     market_id = market["id"]
-    clob_ids = market["clobTokenIds"]
-    up_id = clob_ids[0]
-    down_id = clob_ids[1]
+    up_id = market["clobTokenIds"][0]
+    down_id = market["clobTokenIds"][1]
     return market_id, up_id, down_id
 
-async def main():
-    market_id, up_id, down_id = fetch_latest_market()
-    print(f"🌐 Market ID: {market_id}, UP: {up_id}, DOWN: {down_id}")
-
-    ws = PolymarketWS(market_id, up_id, down_id)
-    strategy = Strategy(ws)
-    timer = Timer()
-    state = StateMachine(strategy, timer)
+async def bot_loop():
+    ws = PolymarketWS()
     execution = Execution()
+    strategy = Strategy(ws, execution)
+    timer = Timer(SESSION_SECONDS)
 
-    async def run_ws():
-        await ws.connect()
+    while True:
+        # Fetch new market if session over or first start
+        if timer.is_over() or not ws.market_id:
+            market_id, up_id, down_id = fetch_latest_market()
+            ws.update_market(market_id, up_id, down_id)
+            strategy.reset()
+            timer.reset()
+            print(f"🕒 New session started for Market {market_id}")
 
-    async def run_logic():
-        while True:
-            strategy.check_and_trade()
-            state.run()
-            await asyncio.sleep(1)
+        # Strategy check
+        strategy.check_and_trade()
+        await asyncio.sleep(1)  # loop 1s
 
-    await asyncio.gather(run_ws(), run_logic())
+async def main():
+    ws = PolymarketWS()
+    task_ws = asyncio.create_task(ws.connect())
+    task_logic = asyncio.create_task(bot_loop())
+    await asyncio.gather(task_ws, task_logic)
 
 if __name__ == "__main__":
     asyncio.run(main())
