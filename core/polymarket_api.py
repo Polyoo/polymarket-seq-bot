@@ -32,6 +32,26 @@ class PolymarketAPI:
             print(f"❌ Error fetching market: {e}")
             return None, None, None
 
+    def fetch_market_prices(self, market_id):
+    """
+    Fetch current outcome prices for a given market_id
+    Returns: {"Up": 0.66, "Down": 0.34}
+    """
+    try:
+        resp = requests.get(f"{self.base_url}/{market_id}")
+        resp.raise_for_status()
+        data = resp.json()
+        if "markets" in data and len(data["markets"]) > 0:
+            prices = data["markets"][0]["outcomePrices"]
+            outcomes = data["markets"][0]["outcomes"]
+            # Convert string list to dict
+            result = dict(zip(outcomes, map(float, prices)))
+            return result
+        return {}
+    except Exception as e:
+        print(f"❌ Error fetching market prices: {e}")
+        return {}
+            
     def fetch_all_active_markets(self):
         """
         Fetch all active markets (optional, for advanced filtering)
@@ -44,3 +64,5 @@ class PolymarketAPI:
         except requests.exceptions.RequestException as e:
             print(f"❌ Error fetching all markets: {e}")
             return []
+            
+    
