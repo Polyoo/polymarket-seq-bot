@@ -11,7 +11,10 @@ class PolymarketAPI:
             resp = requests.get(f"{self.base_url}?seriesSlug={self.series_slug}&active=true")
             resp.raise_for_status()
             data = resp.json()
-            markets = data.get("markets", [])
+
+            # FIX: data is a list
+            markets = data
+
             if len(markets) == 0:
                 print("⚠️ Tiada market aktif sekarang")
                 return None, None, None
@@ -21,6 +24,7 @@ class PolymarketAPI:
             up_id = outcomes.index("Up") if "Up" in outcomes else None
             down_id = outcomes.index("Down") if "Down" in outcomes else None
             return latest["id"], up_id, down_id
+
         except Exception as e:
             print(f"❌ Error fetch_latest_market: {e}")
             return None, None, None
@@ -31,10 +35,13 @@ class PolymarketAPI:
             resp = requests.get(f"{self.base_url}/{market_id}")
             resp.raise_for_status()
             data = resp.json()
-            market = data.get("markets", [{}])[0]
+
+            # FIX: data is a list
+            market = data[0]
             outcomes = market.get("outcomes", [])
             prices = list(map(float, market.get("outcomePrices", [])))
             return dict(zip(outcomes, prices))
+
         except Exception as e:
             print(f"❌ Error fetch_market_prices: {e}")
             return {}
