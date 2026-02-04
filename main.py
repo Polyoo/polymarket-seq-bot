@@ -10,7 +10,7 @@ async def bot_loop():
     strategy = Strategy(trade_amount=TRADE_AMOUNT_USD, threshold=THRESHOLD_CENT)
 
     def update_callback(up_price, down_price):
-        strategy.check_price(up_price, down_price)
+        strategy.check_price(poll.market_id, up_price, down_price)
 
     await poll.start_polling(update_callback)
 
