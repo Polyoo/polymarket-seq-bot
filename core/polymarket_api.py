@@ -3,23 +3,21 @@ import requests
 class PolymarketAPI:
     def __init__(self):
         self.base_url = "https://gamma-api.polymarket.com/markets"
-        self.series_slug = "btc-up-or-down-15m"
 
     def fetch_latest_market(self):
-        """Fetch latest active BTC 15-min market"""
+        """Fetch latest active BTC 15-min market automatically"""
         try:
-            resp = requests.get(f"{self.base_url}?seriesSlug={self.series_slug}&active=true")
+            resp = requests.get(f"{self.base_url}?active=true")
             resp.raise_for_status()
-            data = resp.json()
+            markets = resp.json()  # list
 
-            # FIX: data is a list
-            markets = data
-
-            if len(markets) == 0:
-                print("⚠️ Tiada market aktif sekarang")
+            # ambil market btc-updown-15m paling terbaru
+            btc_markets = [m for m in markets if "btc-updown-15m" in m.get("slug","")]
+            if not btc_markets:
+                print("⚠️ Tiada market BTC aktif sekarang")
                 return None, None, None
 
-            latest = markets[0]
+            latest = btc_markets[-1]  # ambil paling terbaru
             outcomes = latest.get("outcomes", [])
             up_id = outcomes.index("Up") if "Up" in outcomes else None
             down_id = outcomes.index("Down") if "Down" in outcomes else None
@@ -35,13 +33,10 @@ class PolymarketAPI:
             resp = requests.get(f"{self.base_url}/{market_id}")
             resp.raise_for_status()
             data = resp.json()
-
-            # FIX: data is a list
-            market = data[0]
+            market = data[0] if isinstance(data, list) else data
             outcomes = market.get("outcomes", [])
             prices = list(map(float, market.get("outcomePrices", [])))
             return dict(zip(outcomes, prices))
-
         except Exception as e:
             print(f"❌ Error fetch_market_prices: {e}")
             return {}
