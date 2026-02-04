@@ -5,17 +5,15 @@ class Strategy:
         self.session_active = False
 
     def check_price(self, up_price, down_price):
-        """
-        Contoh logic arbitrage < 0.40 cent
-        """
+        """Trigger buy logic tiap price update"""
         if not self.session_active:
             print(f"🕒 New session detected!")
             self.session_active = True
 
         if up_price < self.threshold:
             print(f"💹 BUY UP! Current price: {up_price}")
-            # Trigger buy order function di sini
+            # TODO: panggil function beli Up di sini
 
         elif down_price < self.threshold:
             print(f"💹 BUY DOWN! Current price: {down_price}")
-            # Trigger buy order function di sini
+            # TODO: panggil function beli Down di sini
