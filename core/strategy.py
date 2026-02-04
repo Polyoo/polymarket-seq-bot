@@ -12,8 +12,6 @@ class Strategy:
 
         if up_price < self.threshold:
             print(f"💹 BUY UP! Current price: {up_price}")
-            # TODO: panggil function beli Up di sini
 
         elif down_price < self.threshold:
             print(f"💹 BUY DOWN! Current price: {down_price}")
-            # TODO: panggil function beli Down di sini
