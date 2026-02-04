@@ -11,7 +11,7 @@ class PolymarketPoll:
         self.last_down_price = 0
 
     async def start_polling(self, update_callback):
-        """Loop polling tiap 1s, panggil update_callback(up_price, down_price)"""
+        """Loop polling tiap 1s"""
         while True:
             market_id, up_id, down_id = self.api.fetch_latest_market()
             if market_id:
@@ -22,6 +22,7 @@ class PolymarketPoll:
                     self.down_id = down_id
 
                 prices = self.api.fetch_market_prices(market_id)
+                print(f"🔄 Updated Market: {market_id}, prices: {prices}")  # debug
                 if prices:
                     self.last_up_price = prices.get("Up", 0)
                     self.last_down_price = prices.get("Down", 0)
