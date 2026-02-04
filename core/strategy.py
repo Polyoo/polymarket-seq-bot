@@ -1,24 +1,21 @@
-from config import THRESHOLD_CENT, TRADE_AMOUNT_USD
-
 class Strategy:
-    def __init__(self, ws, execution):
-        self.ws = ws
-        self.execution = execution
-        self.has_traded = False
+    def __init__(self, trade_amount=5, threshold=0.40):
+        self.trade_amount = trade_amount
+        self.threshold = threshold
+        self.session_active = False
 
-    def check_and_trade(self):
-        if self.has_traded:
-            return
+    def check_price(self, up_price, down_price):
+        """
+        Contoh logic arbitrage < 0.40 cent
+        """
+        if not self.session_active:
+            print(f"🕒 New session detected!")
+            self.session_active = True
 
-        if self.ws.up_price and self.ws.up_price < THRESHOLD_CENT:
-            print(f"⚡ Trigger BUY UP @ {self.ws.up_price}")
-            self.execution.buy_up(TRADE_AMOUNT_USD)
-            self.has_traded = True
+        if up_price < self.threshold:
+            print(f"💹 BUY UP! Current price: {up_price}")
+            # Trigger buy order function di sini
 
-        if self.ws.down_price and self.ws.down_price < THRESHOLD_CENT:
-            print(f"⚡ Trigger BUY DOWN @ {self.ws.down_price}")
-            self.execution.buy_down(TRADE_AMOUNT_USD)
-            self.has_traded = True
-
-    def reset(self):
-        self.has_traded = False
+        elif down_price < self.threshold:
+            print(f"💹 BUY DOWN! Current price: {down_price}")
+            # Trigger buy order function di sini
