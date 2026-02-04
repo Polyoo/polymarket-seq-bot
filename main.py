@@ -1,52 +1,23 @@
 import asyncio
-from core.polymarket_ws import PolymarketWS
-from core.strategy import Strategy
-from core.timer import Timer
-from core.execution import Execution
-from core.state_machine import StateMachine
-from core.polymarket_api import PolymarketAPI
-from config import SESSION_SECONDS
+from core.polymarket_poll import PolymarketPoll
+from core.strategy import Strategy  # pastikan ada method check_price(up_price, down_price)
+from config import TRADE_AMOUNT_USD, THRESHOLD_CENT, SESSION_SECONDS
 
-async def bot_loop(ws, strategy, timer, api):
-    """
-    Loop utama bot:
-    - Auto fetch latest market tiap session
-    - Run strategy setiap saat
-    """
-    while True:
-        # Step 1: Fetch new market jika session tamat atau market belum ada
-        if timer.is_over() or not ws.market_id:
-            market_id, up_id, down_id = api.fetch_latest_market()
-            if market_id:
-                ws.update_market(market_id, up_id, down_id)
-                strategy.reset()
-                timer.reset()
-                print(f"🕒 New session started for Market {market_id}")
-            else:
-                print("❌ Tiada market aktif. Retry dalam 5s")
-                await asyncio.sleep(5)
-                continue
+async def bot_loop():
+    # Init polling bot & strategy
+    poll = PolymarketPoll()
+    strategy = Strategy(trade_amount=TRADE_AMOUNT_USD, threshold=THRESHOLD_CENT)
 
-        # Step 2: Check & trigger strategy
-        strategy.check_and_trade()
+    def update_callback(up_price, down_price):
+        """
+        Trigger setiap kali price update
+        """
+        # Check logic kau: harga < threshold
+        strategy.check_price(up_price, down_price)
 
-        # Step 3: Sleep 1s sebelum loop next
-        await asyncio.sleep(1)
-
-async def main():
-    # Initialize modules
-    api = PolymarketAPI()
-    ws = PolymarketWS()
-    execution = Execution()
-    strategy = Strategy(ws, execution)
-    timer = Timer(SESSION_SECONDS)
-    state = StateMachine(strategy, timer)
-
-    # Run WS + bot loop concurrently
-    task_ws = asyncio.create_task(ws.connect())
-    task_loop = asyncio.create_task(bot_loop(ws, strategy, timer, api))
-
-    await asyncio.gather(task_ws, task_loop)
+    # Start polling loop
+    await poll.start_polling(update_callback)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    print("🚀 Polymarket live polling bot started!")
+    asyncio.run(bot_loop())
