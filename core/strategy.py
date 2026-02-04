@@ -2,16 +2,12 @@ class Strategy:
     def __init__(self, trade_amount=5, threshold=0.40):
         self.trade_amount = trade_amount
         self.threshold = threshold
-        self.session_active = False
         self.total_profit = 0
         self.history = []
 
     def check_price(self, market_id, up_price, down_price):
         buy_msg = ""
         profit_change = 0
-
-        if not self.session_active:
-            self.session_active = True
 
         if up_price < self.threshold:
             buy_msg = f"💹 BUY UP! Price: {up_price:.2f}"
@@ -25,7 +21,6 @@ class Strategy:
             self.total_profit += profit_change
             self.history.append(("Down", down_price, profit_change))
 
-        # Terminal panel
         self.display_panel(market_id, up_price, down_price, buy_msg)
 
     def display_panel(self, market_id, up_price, down_price, buy_msg):
