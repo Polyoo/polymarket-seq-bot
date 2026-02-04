@@ -1,59 +1,35 @@
 import asyncio
-import websockets
-import json
+from core.polymarket_api import PolymarketAPI
 
-class PolymarketWS:
+class PolymarketPoll:
     def __init__(self):
-        self.ws_url = "wss://ws.clob.polymarket.com"
+        self.api = PolymarketAPI()
         self.market_id = None
         self.up_id = None
         self.down_id = None
-        self.up_price = None
-        self.down_price = None
-        self.connected = False
+        self.last_up_price = 0
+        self.last_down_price = 0
 
-    async def connect(self):
+    async def start_polling(self, update_callback):
+        """
+        Loop polling tiap 1s, fetch latest market & price
+        update_callback: function(strategy) untuk trigger trade
+        """
         while True:
-            try:
-                async with websockets.connect(self.ws_url) as ws:
-                    self.connected = True
-                    print("✅ WS Connected")
-                    await self.subscribe(ws)
-                    async for msg in ws:
-                        data = json.loads(msg)
-                        self.handle_message(data)
-            except Exception as e:
-                print(f"❌ WS disconnected: {e}, reconnect in 5s")
-                self.connected = False
-                await asyncio.sleep(5)
+            # Fetch latest market tiap session
+            market_id, up_id, down_id = self.api.fetch_latest_market()
+            if market_id:
+                if market_id != self.market_id:
+                    print(f"🕒 New session started for Market {market_id}")
+                    self.market_id = market_id
+                    self.up_id = up_id
+                    self.down_id = down_id
 
-    async def subscribe(self, ws):
-        if not self.market_id:
-            return
-        sub_msg = {
-            "type": "subscribe",
-            "channels": [
-                {"name": "orderbook", "market_ids": [self.market_id]},
-                {"name": "trades", "market_ids": [self.market_id]}
-            ]
-        }
-        await ws.send(json.dumps(sub_msg))
-        print(f"Subscribed to market {self.market_id}")
+                # Fetch price tiap market
+                outcome_prices = self.api.fetch_market_prices(market_id)
+                if outcome_prices:
+                    self.last_up_price = outcome_prices.get("Up", 0)
+                    self.last_down_price = outcome_prices.get("Down", 0)
+                    update_callback(self.last_up_price, self.last_down_price)
 
-    def update_market(self, market_id, up_id, down_id):
-        self.market_id = market_id
-        self.up_id = up_id
-        self.down_id = down_id
-        self.up_price = None
-        self.down_price = None
-        print(f"🔄 Updated Market: {market_id}")
-
-    def handle_message(self, data):
-        if "channel" not in data:
-            return
-        if data["channel"] == "orderbook":
-            for outcome in data["data"].get("outcomes", []):
-                if outcome["id"] == self.up_id:
-                    self.up_price = float(outcome["mid"])
-                elif outcome["id"] == self.down_id:
-                    self.down_price = float(outcome["mid"])
+            await asyncio.sleep(1)
